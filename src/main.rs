@@ -3,17 +3,16 @@ use rocket::http::{Status, ContentType, Header};
 use rocket::{Request, Response};
 use rocket::fairing::{Fairing, Info, Kind};
 
+mod route;
+mod schedule;
+mod user;
+
 #[macro_use] extern crate rocket;
 
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
 struct MyObj {
     data: String,
-}
-
-#[get("/")]
-fn index() -> (Status, (ContentType, &'static str)) {
-    (Status::ImATeapot, (ContentType::JSON, "{ \"data\": \" hello world from rust\" }"))
 }
 
 pub struct CORS;
@@ -35,7 +34,10 @@ impl Fairing for CORS {
     }
 }
 
-#[launch]
-fn rocket() -> _ {
-    rocket::build().attach(CORS).mount("/", routes![index])
+#[rocket::main]
+async fn main() {
+    let mut rocket = rocket::build()
+        .attach(CORS);
+    rocket = route::mount(rocket);
+    rocket.launch().await.unwrap();
 }
