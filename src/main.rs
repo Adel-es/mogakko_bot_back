@@ -1,19 +1,24 @@
-use rocket::serde::{Deserialize, Serialize, json};
-use rocket::http::{Status, ContentType, Header};
+#[macro_use] 
+extern crate diesel;
+extern crate dotenv;
+extern crate r2d2;
+extern crate r2d2_diesel;
+#[macro_use]
+extern crate rocket;
+#[macro_use]
+extern crate serde_derive;
+extern crate chrono;
+
+use rocket::http::{Header};
 use rocket::{Request, Response};
 use rocket::fairing::{Fairing, Info, Kind};
+use dotenv::dotenv;
 
+mod connection;
+mod schema;
 mod route;
 mod schedule;
 mod user;
-
-#[macro_use] extern crate rocket;
-
-#[derive(Serialize)]
-#[serde(crate = "rocket::serde")]
-struct MyObj {
-    data: String,
-}
 
 pub struct CORS;
 
@@ -36,8 +41,10 @@ impl Fairing for CORS {
 
 #[rocket::main]
 async fn main() {
+    dotenv().ok();
     let mut rocket = rocket::build()
-        .attach(CORS);
+        .attach(CORS)
+        .manage(connection::init_pool());
     rocket = route::mount(rocket);
     rocket.launch().await.unwrap();
 }
