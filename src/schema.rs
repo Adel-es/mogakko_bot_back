@@ -4,7 +4,7 @@ table! {
         start -> Timestamp,
         end -> Timestamp,
         user_id -> Text,
-        title -> Nullable<Text>,
-        content -> Nullable<Text>,
+        title -> Text,
+        content -> Text,
     }
 }
