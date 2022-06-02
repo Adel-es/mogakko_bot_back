@@ -2,24 +2,44 @@ use rocket::serde::{Deserialize, Serialize, json};
 use rocket::http::{Status, ContentType, Header};
 use rocket::{Request, Response};
 use rocket::fairing::{Fairing, Info, Kind};
-use rocket::Error; 
-use tokio::sync::{RwLock}; 
+use rocket::Error;
+
+use rocket_session_store::{
+	memory::MemoryStore,
+	SessionStore,
+	SessionResult,
+	Session,
+	CookieConfig,
+};
+
+//===== tcp streaming ======
+//use tokio::sync::{RwLock};
+use std::net::{TcpStream};
+use std::io::{Read, Write};
+
+//===== global varaible ===== 
+use std::sync::{Arc, Mutex}; 
+
+//========other std ==========
+use std::time::Duration;
+use std::thread;
 
 mod route;
 mod schedule;
 mod user;
 mod discord_bot; 
-use std::thread;
+mod connection; 
+mod session; 
+
+use session::session::SessionData; 
 
 #[macro_use] extern crate rocket;
 
-#[derive(Serialize)]
-#[serde(crate = "rocket::serde")]
-struct MyObj {
-    data: String,
+pub struct RedisStruct {
+    discord_bot_stream : Arc<Mutex<TcpStream>> 
 }
-
 pub struct CORS;
+
 
 #[rocket::async_trait]
 impl Fairing for CORS {
@@ -38,44 +58,39 @@ impl Fairing for CORS {
     }
 }
 
-#[rocket::main]
-async fn rocket_server_start() {
-    let mut rocket = rocket::build()
-        .attach(CORS);
-    rocket = route::mount(rocket);
-    rocket.launch().await.unwrap(); 
+fn connect_discord_bot() -> Result<TcpStream, ()> {
+    match TcpStream::connect("localhost:3333") {
+        Ok(mut stream) => {
+            println!("Successfully connected to server in port 3333");
+            Ok(stream)
+        },
+        Err(e) => {
+            println!("Failed to connect: {}", e);
+            Err(())
+        }
+    }
+    // println!("Terminated.");
 }
 
-// https://api.rocket.rs/v0.5-rc/rocket/config/struct.Config.html#method.figment
-#[tokio::main]
+#[rocket::main]
 async fn main() {
-    /* tokio::spawn(move || {
-        // rocket_server_start(); 
-        discord_bot::bot::start_discord_bot().await; 
-    }); */ 
-    let handle = thread::spawn(move || {
-        let rt = tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-        rt.block_on(async {
-            let mut rocket = rocket::build()
-            .attach(CORS);
-            rocket = route::mount(rocket);
-            // rocket.launch().await.unwrap(); 
 
-        });
-    });
-    // tokio::task::spawn(rocket_server_start()); 
-    /*    tokio::spawn(async move {
-        rocket_server_start().await;
-        // discord_bot::bot::start_discord_bot().await; 
-    }); */  
+    let stream =  connect_discord_bot().unwrap(); 
+    let stream = Arc::new(Mutex::new(stream));
+    let redis = RedisStruct{discord_bot_stream : stream}; 
     
-    discord_bot::bot::start_discord_bot().await; 
-    /* 
+    let memory_store:MemoryStore::<SessionData> = MemoryStore::default(); 
+	let store: SessionStore<SessionData> = SessionStore {
+		store: Box::new(memory_store),
+		name: "token".into(),
+		duration: Duration::from_secs(3600),
+		cookie: CookieConfig::default(),
+	};
+
     let mut rocket = rocket::build()
-        .attach(CORS);
+        .attach(CORS)
+        .attach(store.fairing())
+        .manage(redis); 
     rocket = route::mount(rocket);
-    rocket.launch().await.unwrap();  */ 
+    rocket.launch().await.unwrap(); 
 }

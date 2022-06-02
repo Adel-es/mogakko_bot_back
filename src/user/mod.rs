@@ -1,30 +1,53 @@
-use rocket::{self, Build};
+use rocket::{self, Build, State};
 use rocket::http::{Status, ContentType};
+use rocket::response::Redirect; 
+use serde::Serialize;
 
+use std::net::{TcpStream};
+use std::io::{Read, Write};
+use std::sync::{Arc, Mutex, TryLockError, PoisonError}; 
+
+
+use rocket_session_store::Session; 
 pub mod model;
-use super::discord_bot::{auth, config}; 
-use model::User;
-use crate::route;
+pub mod new; 
+use super::connection; 
+use super::RedisStruct;
+use super::session::session::{self, SessionData};   
+
 
 #[get("/")]
-fn read() -> (Status, (ContentType, &'static str)) {
-    (Status::ImATeapot, (ContentType::JSON, "{ \"data\": \" user data\" }"))
+async fn read(session: Session<'_, SessionData> ) -> (Status, (ContentType, &'static str)) {
+    (Status::ImATeapot, (ContentType::JSON, "{ \"data\": \" user is log out \" }"))
 }
 
-#[get("/discord-id-verification/<discord_id>")]
-async fn send_discord_dm(discord_id : &str) -> Status {
-    print!("{}", discord_id);
+#[get("/state")]
+async fn printstate(session: Session<'_, SessionData> ) -> (Status, (ContentType, String)) {
+    let button1 = "<input type=\"button\" onclick=\"location.href='/users/sample_login';\" value=\"Login\"/>"; 
+    let button2 = "<input type=\"button\" onclick=\"location.href='/users/sample_logout';\" value=\"Logout\"/>"; 
     
-    let guild_id : u64 = config::GUILD_ID.parse::<u64>().unwrap();  
-    let discord_user_id : u64 = discord_id.parse::<u64>().unwrap(); 
-    let user_exist_check =  auth::is_guild_user(discord_user_id, guild_id).await;  
-    if user_exist_check {
-        print!("exist!"); 
-    } 
-    Status::Ok
-} 
+
+    let content : String = match session::get_session_login(&session).await {
+        true => String::from("LOGIN SUCCESS"), 
+        false => String::from("YOU ARE NOT IN")
+    }; 
+    (Status::Ok, (ContentType::HTML, format!("{}{}{}", content, button1, button2))) 
+}
+
+#[get("/sample_login")]
+async fn sample_login(session: Session<'_, SessionData> ) -> Redirect {
+    session::set_session_login(&session, true).await.unwrap(); 
+    Redirect::temporary("/users/state")
+}
+
+#[get("/sample_logout")]
+async fn sample_logout(session: Session<'_, SessionData> ) -> Redirect {
+    session::set_session_login(&session, false).await.unwrap(); 
+    Redirect::temporary("/users/state")
+}
+
 
 pub fn mount(rocket: rocket::Rocket<Build>) -> rocket::Rocket<Build> {
-    let rocket = rocket.mount("/users", routes![read]); 
-    rocket.mount("/users/new", routes![send_discord_dm])
+    let rrocket = rocket.mount("/users", routes![read, printstate, sample_login, sample_logout]); 
+    new::mount(rrocket)
 }
