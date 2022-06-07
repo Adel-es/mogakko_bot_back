@@ -42,7 +42,7 @@ impl Schedule {
             query = query.filter(schedules::start.ge(date));
         }
         if let Some(date) = end {
-            query = query.filter(schedules::end.lt(date));
+            query = query.filter(schedules::end.le(date));
         }
         if let Some(id) = user_id {
             query = query.filter(schedules::user_id.eq(id));
