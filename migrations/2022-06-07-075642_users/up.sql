@@ -1,0 +1,9 @@
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    pw TEXT NOT NULL,
+    nickname TEXT NOT NULL,
+	discord_id TEXT NOT NULL UNIQUE,
+	created timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+    memo TEXT NOT NULL DEFAULT ''
+)

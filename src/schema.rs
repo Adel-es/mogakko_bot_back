@@ -8,3 +8,20 @@ table! {
         content -> Text,
     }
 }
+
+table! {
+    users (id) {
+        id -> Int4,
+        username -> Text,
+        pw -> Text,
+        nickname -> Text,
+        discord_id -> Text,
+        created -> Timestamp,
+        memo -> Text,
+    }
+}
+
+allow_tables_to_appear_in_same_query!(
+    schedules,
+    users,
+);

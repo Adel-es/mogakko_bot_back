@@ -8,6 +8,7 @@ extern crate rocket;
 #[macro_use]
 extern crate serde_derive;
 extern crate chrono;
+extern crate bcrypt;
 
 use rocket::http::{Header};
 use rocket::{Request, Response};
