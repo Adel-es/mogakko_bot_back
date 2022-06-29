@@ -1,6 +1,6 @@
 use std::env;
 use std::ops::Deref;
-use diesel::{pg::PgConnection, prelude::*, sql_query};
+use diesel::pg::PgConnection;
 use r2d2;
 use r2d2_diesel::ConnectionManager;
 use rocket::State;
@@ -12,12 +12,7 @@ type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 pub fn init_pool() -> Pool {
     let manager = ConnectionManager::<PgConnection>::new(database_url());
-    let pool = Pool::new(manager).expect("db pool");
-    let conn_ref = &*pool.get().expect("pool get");
-    sql_query("SET TIME ZONE 'Asia/Seoul';")
-        .execute(conn_ref)
-        .expect("set timezone");
-    pool
+    Pool::new(manager).expect("db pool")
 }
 
 fn database_url() -> String {
