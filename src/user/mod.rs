@@ -7,8 +7,10 @@ use rocket::{self, Build};
 use bcrypt::{DEFAULT_COST, hash};
 use crate::connection::DbConn;
 use model::{NewUser, User, UserResponse, UpdateUser};
+use format::check_form;
 
 pub mod model;
+pub mod format;
 
 #[post("/", format = "application/json", data = "<new_user>")]
 pub fn create(
@@ -16,6 +18,7 @@ pub fn create(
     connection: DbConn,
 ) -> Result<Status, Status> {
     let mut user = new_user.into_inner();
+    check_form(&user).map_err(|_| Status::BadRequest)?;
     user.pw = hash(user.pw, DEFAULT_COST)
         .map_err(|_| Status::InternalServerError)?;
     NewUser::create(user, &connection)
