@@ -15,11 +15,21 @@ use rocket::{Request, Response};
 use rocket::fairing::{Fairing, Info, Kind};
 use dotenv::dotenv;
 
+use std::net::{TcpStream};
+use std::io::{Read, Write};
+use std::sync::{Arc, Mutex}; 
+
 mod connection;
 mod schema;
 mod route;
 mod schedule;
 mod user;
+mod connection_bot; 
+mod discord_bot; 
+
+pub struct RedisStruct {
+    discord_bot_stream : Arc<Mutex<TcpStream>> 
+}
 
 pub struct CORS;
 
@@ -40,12 +50,32 @@ impl Fairing for CORS {
     }
 }
 
+fn connect_discord_bot() -> Result<TcpStream, ()> {
+    match TcpStream::connect("localhost:3333") {
+        Ok(mut stream) => {
+            println!("Successfully connected to server in port 3333");
+            Ok(stream)
+        },
+        Err(e) => {
+            println!("Failed to connect: {}", e);
+            Err(())
+        }
+    }
+    // println!("Terminated.");
+}
+
 #[rocket::main]
 async fn main() {
     dotenv().ok();
+    let stream =  connect_discord_bot().unwrap(); 
+    let stream = Arc::new(Mutex::new(stream));
+    let redis = RedisStruct{discord_bot_stream : stream}; 
+
     let mut rocket = rocket::build()
         .attach(CORS)
-        .manage(connection::init_pool());
+        .manage(connection::init_pool())
+        .manage(redis); 
+        
     rocket = route::mount(rocket);
     rocket.launch().await.unwrap();
 }

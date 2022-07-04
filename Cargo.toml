@@ -8,7 +8,9 @@ edition = "2021"
 [dependencies]
 rocket = { version = "0.5.0-rc.1", features = ["secrets", "tls", "json"] }
 rocket_codegen = "0.4.5"
+rocket-session-store = "0.2.0"
 diesel = { version = "1.4.4", features = ["postgres", "chrono"] }
+rand = {version = "0.8.5"}
 r2d2-diesel = "1.0.0"
 r2d2 = "0.8.9"
 serde = "1.0.116"
