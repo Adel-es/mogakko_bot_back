@@ -28,7 +28,7 @@ mod connection_bot;
 mod discord_bot; 
 
 pub struct RedisStruct {
-    discord_bot_stream : Arc<Mutex<TcpStream>> 
+    discord_bot_stream : Option<Arc<Mutex<TcpStream>>> 
 }
 
 pub struct CORS;
@@ -67,8 +67,14 @@ fn connect_discord_bot() -> Result<TcpStream, ()> {
 #[rocket::main]
 async fn main() {
     dotenv().ok();
-    let stream =  connect_discord_bot().unwrap(); 
-    let stream = Arc::new(Mutex::new(stream));
+
+    let stream = if discord_bot::config::DISCORD_BOT_CONNECTION {
+        Some(Arc::new(Mutex::new(connect_discord_bot().unwrap())))
+    } else{
+        None
+    }; 
+
+    // let stream = Arc::new(Mutex::new(stream));
     let redis = RedisStruct{discord_bot_stream : stream}; 
 
     let mut rocket = rocket::build()

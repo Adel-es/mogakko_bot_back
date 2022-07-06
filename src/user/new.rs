@@ -20,8 +20,13 @@ fn create_verify_code() -> u64 {
 async fn send_discord_dm(redis : &State<RedisStruct>, discord_id : &str) -> Status {
 
     // let guild_id : u64 = config::GUILD_ID.parse::<u64>().unwrap();  
+    if config::DISCORD_BOT_CONNECTION == false {
+        println!("[critical] you can not use this API, because DISCORD_BOT_CONNECTION is false setted"); 
+        return Status::InternalServerError; 
+    }
+    
     let discord_user_id : u64 = discord_id.parse::<u64>().unwrap(); 
-    let stream = Arc::clone(&redis.discord_bot_stream);
+    let stream = Arc::clone(&redis.discord_bot_stream.as_ref().unwrap());
 
     let code = create_verify_code(); 
     //TODO! Fill discord id 
