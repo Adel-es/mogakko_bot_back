@@ -29,7 +29,6 @@ pub struct NewSchedule<'a> {
 pub struct UpdateSchedule<'a> {
     pub start: Option<NaiveDateTime>,
     pub end: Option<NaiveDateTime>,
-    pub user_id: Option<&'a str>,
     pub title: Option<&'a str>,
     pub content: Option<&'a str>
 }
