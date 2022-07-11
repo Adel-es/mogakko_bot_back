@@ -7,15 +7,15 @@ use rocket::serde::json::Json;
 use rocket::{self, Build};
 
 use crate::connection::DbConn;
-use model::{NewSchedule, Schedule, UpdateSchedule};
+use model::{Schedule, DisplaySchedule, NewSchedule, UpdateSchedule};
 
 #[get("/?<start>&<end>&<user_id>")]
 fn read(
     start: Option<&str>,
     end: Option<&str>,
-    user_id: Option<&str>,
+    user_id: Option<i32>,
     connection: DbConn,
-) -> Result<Json<Vec<Schedule>>, Status> {
+) -> Result<Json<Vec<DisplaySchedule>>, Status> {
     let fmt = "%Y-%m-%dT%H:%M:%S";
     let parse_from_str = NaiveDateTime::parse_from_str;
     
@@ -36,7 +36,7 @@ fn read(
 }
 
 #[get("/<id>")]
-fn read_one(id: i32, connection: DbConn) -> Result<Json<Schedule>, Status> {
+fn read_one(id: i32, connection: DbConn) -> Result<Json<DisplaySchedule>, Status> {
     // 로그인 확인하는 부분 추가하기
 
     Schedule::read_by_id(id, &connection)

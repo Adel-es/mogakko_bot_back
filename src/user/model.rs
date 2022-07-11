@@ -2,6 +2,7 @@ use diesel;
 use diesel::prelude::*;
 use chrono::prelude::*;
 use crate::schema::users;
+use crate::schema::schedules;
 
 #[derive(Queryable, Serialize, Deserialize, Debug)]
 pub struct User {
@@ -48,6 +49,9 @@ impl User {
     }
 
     pub fn delete(id: i32, connection: &PgConnection) -> QueryResult<usize> {
+        diesel::update(schedules::table.filter(schedules::user_id.eq(id)))
+                .set(schedules::user_id.eq(1))
+                .execute(connection)?;
         diesel::delete(users::table.find(id))
                 .execute(connection)
     }

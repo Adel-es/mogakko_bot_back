@@ -3,7 +3,7 @@ table! {
         id -> Int4,
         start -> Timestamp,
         end -> Timestamp,
-        user_id -> Text,
+        user_id -> Int4,
         title -> Text,
         content -> Text,
     }
@@ -20,6 +20,8 @@ table! {
         memo -> Text,
     }
 }
+
+joinable!(schedules -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
     schedules,
