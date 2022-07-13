@@ -8,6 +8,7 @@ use bcrypt::{DEFAULT_COST, hash};
 use crate::connection::DbConn;
 use model::{NewUser, User, UserResponse, UpdateUser};
 
+pub mod sample; 
 pub mod new; 
 pub mod model;
 
@@ -66,6 +67,7 @@ fn error_status(error: Error) -> Status {
 }
 
 pub fn mount(rocket: rocket::Rocket<Build>) -> rocket::Rocket<Build> {
-    let rrocket = rocket.mount("/users", routes![create, read, update, delete]); 
+    let mut rrocket = rocket.mount("/users", routes![create, read, update, delete]); 
+    // rrocket = sample::mount(rrocket); 
     new::mount(rrocket) 
 }

@@ -5,4 +5,4 @@ pub const GUILD_ID : &'static str = std::env!("DISCORD_GUILD_ID");
     - discord id verification
     - get discord nickname 
 */ 
-pub const DISCORD_BOT_CONNECTION : bool= false; 
+pub const DISCORD_BOT_CONNECTION : bool= true; 
