@@ -4,5 +4,6 @@ CREATE TABLE schedules (
   "end" timestamp NOT NULL,
   user_id integer NOT NULL REFERENCES users (id),
   title TEXT NOT NULL,
-  content TEXT NOT NULL
+  content TEXT NOT NULL,
+  CONSTRAINT CK_start_le_end CHECK (start <= "end")
 )
