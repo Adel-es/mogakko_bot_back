@@ -5,6 +5,7 @@ use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{self, Build};
 use bcrypt::{DEFAULT_COST, hash};
+use chrono::{Local, NaiveDateTime};
 use crate::connection::DbConn;
 use model::{NewUser, User, UserResponse, UpdateUser};
 use format::{check_form, check_username, check_pw};
@@ -18,9 +19,16 @@ pub fn create(
     connection: DbConn,
 ) -> Result<Status, (Status, String)> {
     let mut user = new_user.into_inner();
+    
     check_form(&user).map_err(|e| (Status::BadRequest, e.to_string()))?;
+    
     user.pw = hash(user.pw, DEFAULT_COST)
         .map_err(|e| (Status::InternalServerError, e.to_string()))?;
+    
+    let now = Local::now().to_string();
+    user.created = Some(NaiveDateTime::parse_from_str(&now, "%Y-%m-%d %H:%M:%S%.f %z")
+        .map_err(|e| (Status::InternalServerError, e.to_string()))?);
+
     NewUser::create(user, &connection)
         .map(|_| Status::Created)
         .map_err(|error| error_status(error))

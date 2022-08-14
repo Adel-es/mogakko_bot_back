@@ -31,7 +31,8 @@ pub struct NewUser<'a> {
     pub username: &'a str,
     pub pw: String,
     pub nickname: &'a str,
-    pub discord_id: &'a str
+    pub discord_id: &'a str,
+    pub created: Option<NaiveDateTime>
 }
 
 #[derive(AsChangeset, Serialize, Deserialize, Debug)]
