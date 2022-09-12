@@ -1,12 +1,13 @@
 pub mod model;
 
 use chrono::NaiveDateTime;
-use diesel::result::{Error, DatabaseErrorKind};
+use diesel::result::Error;
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{self, Build};
 
 use crate::connection::DbConn;
+use crate::error::err_to_response;
 use model::{Schedule, DisplaySchedule, NewSchedule, UpdateSchedule};
 
 #[get("/?<start>&<end>&<user_id>")]
@@ -32,7 +33,7 @@ fn read(
 
     Schedule::read_by_cond(start_dt, end_dt, user_id, &connection)
         .map(|schedule| Json(schedule))
-        .map_err(|e| error_status(e))
+        .map_err(|e| err_to_response(e))
 }
 
 #[get("/<id>")]
@@ -41,7 +42,7 @@ fn read_one(id: i32, connection: DbConn) -> Result<Json<DisplaySchedule>, (Statu
 
     Schedule::read_by_id(id, &connection)
         .map(|schedule| Json(schedule))
-        .map_err(|e| error_status(e))
+        .map_err(|e| err_to_response(e))
 }
 
 #[post("/", format = "application/json", data = "<new_schedule>")]
@@ -51,7 +52,7 @@ pub fn create(
 ) -> Result<Json<Schedule>, (Status, String)> {
     NewSchedule::create(new_schedule.into_inner(), &connection)
         .map(|schedule| Json(schedule))
-        .map_err(|e| error_status(e))
+        .map_err(|e| err_to_response(e))
 }
 
 #[patch("/<id>", format = "application/json", data = "<schedule>")]
@@ -62,7 +63,7 @@ pub fn update(
 ) -> Result<Json<Schedule>, (Status, String)> {
     UpdateSchedule::update(id, schedule.into_inner(), &connection)
         .map(|schedule| Json(schedule))
-        .map_err(|e| error_status(e))
+        .map_err(|e| err_to_response(e))
 }
 
 #[delete("/<id>")]
@@ -70,35 +71,13 @@ pub fn delete(id: i32, connection: DbConn) -> Result<Status, (Status, String)> {
     match Schedule::delete(id, &connection) {
         Ok(row_cnt) => {
             if row_cnt == 0 {
-                Err(error_status(Error::NotFound))
+                Err(err_to_response(Error::NotFound))
             } else {
                 Ok(Status::Ok)
             }
         },
-        Err(e) => Err(error_status(e))
+        Err(e) => Err(err_to_response(e))
     }
-}
-
-fn error_status(error: Error) -> (Status, String) {
-    let status = match error {
-        Error::NotFound => Status::NotFound,
-        Error::QueryBuilderError(_) => Status::UnprocessableEntity,
-        Error::DatabaseError(kind, ref info) => {
-            match kind {
-                DatabaseErrorKind::UniqueViolation => Status::Conflict,
-                DatabaseErrorKind::ForeignKeyViolation => Status::UnprocessableEntity,
-                _ => {
-                    match info.constraint_name() {
-                        Some(_) => Status::UnprocessableEntity,
-                        None => Status::InternalServerError
-                    }
-                }
-            }
-        }
-        _ => Status::InternalServerError,
-    };
-    
-    (status, format!("{}: {}", status.code.to_string(), error.to_string()))
 }
 
 pub fn mount(rocket: rocket::Rocket<Build>) -> rocket::Rocket<Build> {

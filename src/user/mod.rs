@@ -1,11 +1,12 @@
 extern crate bcrypt;
 
-use diesel::result::{Error, DatabaseErrorKind};
+use diesel::result::Error;
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{self, Build};
 use bcrypt::{DEFAULT_COST, hash};
 use chrono::{Local, NaiveDateTime};
+use crate::error::err_to_response;
 use crate::connection::DbConn;
 use model::{NewUser, User, UserResponse, UpdateUser};
 use format::{check_form, check_username, check_pw};
@@ -31,7 +32,7 @@ pub fn create(
 
     NewUser::create(user, &connection)
         .map(|_| Status::Created)
-        .map_err(|error| error_status(error))
+        .map_err(|error| err_to_response(error))
 }
 
 #[get("/<id>")]
@@ -39,7 +40,7 @@ fn read(id: i32, connection: DbConn) -> Result<Json<UserResponse>, (Status, Stri
     // check mkko_login_session
     User::read(id, &connection)
         .map(|user| Json(user.to_response()))
-        .map_err(|e| error_status(e))
+        .map_err(|e| err_to_response(e))
 }
 
 #[patch("/<id>", format = "application/json", data = "<user>")]
@@ -62,7 +63,7 @@ pub fn update(
     }
     UpdateUser::update(id, user, &connection)
         .map(|user| Json(user.to_response()))
-        .map_err(|e| error_status(e))
+        .map_err(|e| err_to_response(e))
 }
 
 #[delete("/<id>")]
@@ -71,35 +72,13 @@ pub fn delete(id: i32, connection: DbConn) -> Result<Status, (Status, String)> {
     match User::delete(id, &connection) {
         Ok(row_cnt) => {
             if row_cnt == 0 {
-                Err(error_status(Error::NotFound))
+                Err(err_to_response(Error::NotFound))
             } else {
                 Ok(Status::Ok)
             }
         },
-        Err(e) => Err(error_status(e))
+        Err(e) => Err(err_to_response(e))
     }
-}
-
-fn error_status(error: Error) -> (Status, String) {
-    let status = match error {
-        Error::NotFound => Status::NotFound,
-        Error::QueryBuilderError(_) => Status::UnprocessableEntity,
-        Error::DatabaseError(kind, ref info) => {
-            match kind {
-                DatabaseErrorKind::UniqueViolation => Status::Conflict,
-                DatabaseErrorKind::ForeignKeyViolation => Status::UnprocessableEntity,
-                _ => {
-                    match info.constraint_name() {
-                        Some(_) => Status::UnprocessableEntity,
-                        None => Status::InternalServerError
-                    }
-                }
-            }
-        }
-        _ => Status::InternalServerError,
-    };
-    
-    (status, format!("{}: {}", status.code.to_string(), error.to_string()))
 }
 
 pub fn mount(rocket: rocket::Rocket<Build>) -> rocket::Rocket<Build> {

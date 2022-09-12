@@ -18,6 +18,7 @@ use dotenv::dotenv;
 mod connection;
 mod schema;
 mod route;
+mod error;
 mod schedule;
 mod user;
 
