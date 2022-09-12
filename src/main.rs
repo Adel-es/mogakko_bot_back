@@ -27,6 +27,7 @@ use std::time::Duration;
 mod connection;
 mod schema;
 mod route;
+mod error;
 mod schedule;
 mod user;
 mod connection_bot; 

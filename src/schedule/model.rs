@@ -2,6 +2,7 @@ use diesel;
 use diesel::prelude::*;
 use chrono::prelude::*;
 use crate::schema::schedules::{self};
+use crate::schema::users;
 // use crate::schema::schedules::dsl::*;
 
 #[derive(Queryable, Serialize, Deserialize, Debug)]
@@ -9,7 +10,17 @@ pub struct Schedule {
     pub id: i32,
     pub start: NaiveDateTime,
     pub end: NaiveDateTime,
-    pub user_id: String,
+    pub user_id: i32,
+    pub title: String,
+    pub content: String
+}
+
+#[derive(Queryable, Serialize, Deserialize, Debug)]
+pub struct DisplaySchedule {
+    pub id: i32,
+    pub start: NaiveDateTime,
+    pub end: NaiveDateTime,
+    pub nickname: String,
     pub title: String,
     pub content: String
 }
@@ -19,7 +30,7 @@ pub struct Schedule {
 pub struct NewSchedule<'a> {
     pub start: NaiveDateTime,
     pub end: NaiveDateTime,
-    pub user_id: &'a str,
+    pub user_id: i32,
     pub title: &'a str,
     pub content: &'a str
 }
@@ -29,14 +40,13 @@ pub struct NewSchedule<'a> {
 pub struct UpdateSchedule<'a> {
     pub start: Option<NaiveDateTime>,
     pub end: Option<NaiveDateTime>,
-    pub user_id: Option<&'a str>,
     pub title: Option<&'a str>,
     pub content: Option<&'a str>
 }
 
 impl Schedule {
-    pub fn read_by_cond(start: Option<NaiveDateTime>, end: Option<NaiveDateTime>, user_id: Option<&str>, connection: &PgConnection) -> QueryResult<Vec<Schedule>>  {
-        let mut query = schedules::table.into_boxed();
+    pub fn read_by_cond(start: Option<NaiveDateTime>, end: Option<NaiveDateTime>, user_id: Option<i32>, connection: &PgConnection) -> QueryResult<Vec<DisplaySchedule>>  {
+        let mut query = schedules::table.inner_join(users::table).into_boxed();
 
         if let Some(date) = start {
             query = query.filter(schedules::start.ge(date));
@@ -47,11 +57,15 @@ impl Schedule {
         if let Some(id) = user_id {
             query = query.filter(schedules::user_id.eq(id));
         }
-        query.load::<Schedule>(&*connection)
+        query.select((schedules::id, schedules::start, schedules::end, users::nickname, schedules::title, schedules::content))
+            .load::<DisplaySchedule>(&*connection)
     }
 
-    pub fn read_by_id(id: i32, connection: &PgConnection) -> QueryResult<Schedule> {
-        schedules::table.find(id).get_result::<Schedule>(connection)
+    pub fn read_by_id(id: i32, connection: &PgConnection) -> QueryResult<DisplaySchedule> {
+        schedules::table.inner_join(users::table)
+            .filter(schedules::id.eq(id))
+            .select((schedules::id, schedules::start, schedules::end, users::nickname, schedules::title, schedules::content))
+            .get_result::<DisplaySchedule>(connection)
     }
 
     pub fn delete(id: i32, connection: &PgConnection) -> QueryResult<usize> {
